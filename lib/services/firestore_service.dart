@@ -1,91 +1,112 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
 import '../models/shopping_item.dart';
 
 class FirestoreService {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   // Collection names
   final String shoppingListsCollection = 'shoppingLists';
   final String itemsCollection = 'items';
 
-  // Create a new shopping list
-  Future<void> createShoppingList(String listName) async {
-    await _db.collection(shoppingListsCollection).add({
+  /// **Create a new shopping list**
+  Future<void> createShoppingList(String uid, String listName) async {
+    await _firestore.collection(shoppingListsCollection).add({
       'name': listName,
-      'createdAt': Timestamp.now(),
+      'userId': uid, // Associate the list with the user's UID
+      'createdAt': FieldValue.serverTimestamp(),
     });
   }
 
-  // Fetch all shopping lists
-  Stream<List<Map<String, String>>> getShoppingLists() {
-    return FirebaseFirestore.instance
+  // Listen for shopping lists for the current user
+  Stream<List<Map<String, String>>> getShoppingLists(String uid) {
+    return _firestore
         .collection('shoppingLists')
+        .where('userId', isEqualTo: uid)
+        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs.map((doc) {
+      final data = doc.data();
+      print('Document data: $data');
       return {
         'id': doc.id,
-        'name': doc['name'] as String,
+        'name': data['name'] as String,
       };
     }).toList());
   }
 
 
-  // Add an item to a specific list
+  /// **Add an item to a specific list**
   Future<void> addItemToList(String listId, ShoppingItem item) async {
-    print('Adding item to list: $listId, ${item.name}');
-    await _db.collection(itemsCollection).add({
+    await _firestore.collection(itemsCollection).add({
       'listId': listId,
       'name': item.name,
       'isPurchased': item.isPurchased,
-      'createdAt': Timestamp.now(),
+      'createdAt': FieldValue.serverTimestamp(),
     });
   }
 
-  // Fetch items from a shopping list
+  /// **Fetch items from a shopping list**
   Stream<List<ShoppingItem>> getItemsForList(String listId) {
-    return _db.collection(itemsCollection)
+    return _firestore
+        .collection(itemsCollection)
         .where('listId', isEqualTo: listId)
+        .orderBy('createdAt', descending: true) // Ensure 'createdAt' exists
         .snapshots()
         .map((snapshot) {
+      print('Items fetched for listId $listId: ${snapshot.docs.length}');
       return snapshot.docs.map((doc) {
+        final data = doc.data();
+        print('Item data: $data');
         return ShoppingItem(
           id: doc.id,
-          name: doc['name'],
-          isPurchased: doc['isPurchased'],
+          name: data['name'] as String,
+          isPurchased: data['isPurchased'] as bool,
         );
       }).toList();
     });
   }
 
-  // Update item status
+
+  /// **Toggle item purchase status**
   Future<void> toggleItemPurchase(String itemId, bool isPurchased) async {
-    await _db.collection(itemsCollection).doc(itemId).update({
+    await _firestore.collection(itemsCollection).doc(itemId).update({
       'isPurchased': isPurchased,
     });
   }
 
-  // Delete an item
+  /// **Delete an item**
   Future<void> deleteItem(String itemId) async {
-    await _db.collection(itemsCollection).doc(itemId).delete();
+    await _firestore.collection(itemsCollection).doc(itemId).delete();
   }
 
-  //Edit an item
+  /// **Edit an item**
   Future<void> editItem(String itemId, String newName) async {
-    await _db.collection(itemsCollection).doc(itemId).update({'name': newName});
+    await _firestore.collection(itemsCollection).doc(itemId).update({
+      'name': newName,
+    });
   }
 
-  // Delete a shopping list (along with its items)
+  /// **Delete a shopping list (and its items)**
   Future<void> deleteShoppingList(String listId) async {
-    final shoppingList = _db.collection(shoppingListsCollection).doc(listId);
-    final itemsSnapshot = await _db.collection(itemsCollection)
+    final batch = _firestore.batch();
+
+    // Fetch all items linked to the list
+    final itemsSnapshot = await _firestore
+        .collection(itemsCollection)
         .where('listId', isEqualTo: listId)
         .get();
 
+    // Queue deletion of all items
     for (var doc in itemsSnapshot.docs) {
-      await deleteItem(doc.id); // Delete each item
+      batch.delete(doc.reference);
     }
 
-    await shoppingList.delete(); //delete the list
+    // Delete the shopping list
+    final shoppingListRef =
+    _firestore.collection(shoppingListsCollection).doc(listId);
+    batch.delete(shoppingListRef);
+
+    // Commit all batched operations
+    await batch.commit();
   }
 }

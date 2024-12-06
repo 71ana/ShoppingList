@@ -1,9 +1,22 @@
-allprojects {
+buildscript {
     repositories {
-        google()
-        mavenCentral()
+        google() // Ensure this is present
+        mavenCentral() // Add Maven Central for Firebase dependencies
+    }
+    dependencies {
+        classpath 'com.google.gms:google-services:4.3.15'
     }
 }
+
+allprojects {
+    repositories {
+        google() // Ensure this is present
+        mavenCentral() // Add Maven Central
+    }
+}
+
+
+
 
 rootProject.buildDir = "../build"
 subprojects {

@@ -1,4 +1,6 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:shopping_list_app/screens/profile_screen.dart';
 import 'shopping_list_screen.dart';
 import '../services/firestore_service.dart';
 
@@ -8,24 +10,77 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  int _selectedIndex = 0;
+
+  final List<Widget> _screens = [
+    HomeContent(),
+    ProfileScreen(),
+  ];
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _screens[_selectedIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
+      ),
+    );
+  }
+
+}
+
+class HomeContent extends StatefulWidget {
+  @override
+  _HomeContentState createState() => _HomeContentState();
+}
+
+class _HomeContentState extends State<HomeContent> {
   final FirestoreService _firestoreService = FirestoreService();
+  final _auth = FirebaseAuth.instance;
   List<Map<String, String>> shoppingLists = []; // Stores list name and ID
 
   @override
   void initState() {
     super.initState();
 
-    // Listen for shopping lists from Firestore
-    _firestoreService.getShoppingLists().listen((lists) {
-      setState(() {
-        shoppingLists = lists;
+    final user = _auth.currentUser;
+    if (user != null) {
+      final uid = user.uid;
+      print('Current user UID: $uid');
+
+      // Listen for shopping lists from Firestore
+      _firestoreService.getShoppingLists(uid).listen((lists) {
+        print('Received shopping lists: $lists');
+        setState(() {
+          shoppingLists = lists;
+        });
       });
-    });
+    }
   }
 
-  // Function to create a new shopping list
   void _createList(String listName) {
-    _firestoreService.createShoppingList(listName);
+    final user = _auth.currentUser;
+    if (user != null) {
+      final uid = user.uid;
+      _firestoreService.createShoppingList(uid, listName);
+    }
   }
 
   void _showAddListDialog() {
@@ -73,8 +128,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -86,8 +139,8 @@ class _HomeScreenState extends State<HomeScreen> {
             fontSize: 20,
           ),
         ),
-        backgroundColor: Colors.indigo[200], // Custom color scheme
-        elevation: 4.0, // Shadow for depth
+        backgroundColor: Colors.indigo[200],
+        elevation: 4.0,
       ),
       body: shoppingLists.isEmpty
           ? Center(
@@ -115,7 +168,7 @@ class _HomeScreenState extends State<HomeScreen> {
           final listName = list['name']!;
 
           return Dismissible(
-            key: Key(listId), // Use unique ID as key
+            key: Key(listId),
             direction: DismissDirection.endToStart,
             onDismissed: (direction) async {
               // Remove the list from the UI immediately
@@ -143,7 +196,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 });
               }
             },
-
             background: Container(
               color: Colors.red,
               alignment: Alignment.centerRight,
@@ -173,7 +225,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => ShoppingListScreen(listName: listName, listId: listId,),
+                      builder: (context) => ShoppingListScreen(
+                        listName: listName,
+                        listId: listId,
+                      ),
                     ),
                   );
                 },
