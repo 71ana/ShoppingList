@@ -34,6 +34,22 @@ class FirestoreService {
     }).toList());
   }
 
+  Future<bool> isProductInList(String listId, String productName) async {
+    try {
+      // Query Firestore to check if the product exists in the current list
+      final querySnapshot = await _firestore
+          .collection('items') // Replace with your collection name
+          .where('listId', isEqualTo: listId) // Filter by list ID
+          .where('name', isEqualTo: productName) // Filter by product name
+          .get();
+
+      // Return true if any documents match, false otherwise
+      return querySnapshot.docs.isNotEmpty;
+    } catch (e) {
+      print('Error checking product in list: $e');
+      return false; // Assume product is not in the list if an error occurs
+    }
+  }
 
   /// **Add an item to a specific list**
   Future<void> addItemToList(String listId, ShoppingItem item) async {

@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shopping_list_app/screens/map_screen.dart';
 import 'package:shopping_list_app/screens/profile_screen.dart';
-import 'firebase_options.dart';
 import 'screens/home_screen.dart';
 import 'screens/auth_screen.dart';
 
@@ -24,6 +23,7 @@ class ShoppingListApp extends StatelessWidget {
         '/home': (context) => HomeScreen(),
         '/profile': (context) => ProfileScreen(),
         '/login' : (context) => AuthScreen(),
+        '/map' : (context) => MapScreen(),
       },
     );
   }

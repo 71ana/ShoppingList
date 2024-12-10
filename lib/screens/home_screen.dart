@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:shopping_list_app/screens/map_screen.dart';
 import 'package:shopping_list_app/screens/profile_screen.dart';
 import 'shopping_list_screen.dart';
 import '../services/firestore_service.dart';
@@ -14,6 +15,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final List<Widget> _screens = [
     HomeContent(),
+    MapScreen(),
     ProfileScreen(),
   ];
 
@@ -32,8 +34,12 @@ class _HomeScreenState extends State<HomeScreen> {
         onTap: _onItemTapped,
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
+            icon: Icon(Icons.checklist_rounded),
+            label: 'My Lists',
+          ),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.map_outlined),
+              label: 'Map'
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
