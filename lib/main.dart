@@ -1,7 +1,7 @@
+import 'package:Listify/screens/map_screen.dart';
+import 'package:Listify/screens/profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:shopping_list_app/screens/map_screen.dart';
-import 'package:shopping_list_app/screens/profile_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/auth_screen.dart';
 

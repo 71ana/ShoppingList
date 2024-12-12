@@ -1,11 +1,11 @@
 import 'dart:convert';
-
+import 'package:Listify/screens/scanner_screen.dart';
+import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:flutter/material.dart';
-import 'package:shopping_list_app/screens/scanner_screen.dart';
+import 'package:lottie/lottie.dart';
 import '../models/shopping_item.dart';
 import '../services/firestore_service.dart';
 import 'package:http/http.dart' as http;
-
 
 class ShoppingListScreen extends StatefulWidget {
   final String listName;
@@ -41,11 +41,20 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
 
   void _addItem(String name) {
     if (name.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Item name cannot be empty!')),
+      final snackBar = SnackBar(
+        content: AwesomeSnackbarContent(
+          title: 'Error',
+          message: 'Item name cannot be empty!',
+          contentType: ContentType.failure,
+        ),
+        backgroundColor: Colors.transparent,
+        behavior: SnackBarBehavior.floating,
+        elevation: 0,
       );
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
       return;
     }
+
     _firestoreService.addItemToList(
       widget.listId,
       ShoppingItem(
@@ -54,14 +63,25 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         isPurchased: false,
       ),
     );
-    print('Added item to Firestore: $name'); // Debug
+
+    final snackBar = SnackBar(
+      content: AwesomeSnackbarContent(
+        title: 'Success',
+        message: '"$name" added successfully!',
+        contentType: ContentType.success,
+      ),
+      backgroundColor: Colors.transparent,
+      behavior: SnackBarBehavior.floating,
+      elevation: 0,
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    _textController.clear();
   }
 
   void _togglePurchase(String itemId, bool isPurchased) {
     _firestoreService.toggleItemPurchase(itemId, !isPurchased);
-    setState(() {});
   }
-
 
   void _deleteItem(String itemId) {
     _firestoreService.deleteItem(itemId);
@@ -75,36 +95,26 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     final url = 'https://world.openfoodfacts.org/api/v0/product/$barcode.json';
 
     try {
-      print('Fetching product for barcode: $barcode'); // Debug: barcode
       final response = await http.get(Uri.parse(url));
-      print('API Response Status: ${response.statusCode}'); // Debug: status
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print('API Response Data: $data'); // Debug: response data
-
         if (data != null && data['product'] != null) {
           final product = data['product'];
           final productName = product['product_name'] ?? 'Unknown Product';
 
           final exists = await _firestoreService.isProductInList(widget.listId, productName);
           if (!exists) {
-            _addItem(productName); // Add the product to the list
-            print('Product detected and added: $productName'); // Debug: product added
+            _addItem(productName);
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('Product "$productName" is already in the shopping list.')),
             );
-            print('Product "$productName" is already in the shopping list.');
           }
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('No product found for this barcode.')),
           );
-          print('No product found for this barcode.');
         }
-      } else {
-        print('API Error: ${response.statusCode}');
       }
     } catch (e) {
       print('Error fetching product: $e');
@@ -129,8 +139,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       MaterialPageRoute(
         builder: (context) => ScannerScreen(
           onScan: (code) {
-            print('Scanned code: $code');
-            _fetchProductFromApi(code); // Fetch product details
+            _fetchProductFromApi(code);
           },
         ),
       ),
@@ -140,101 +149,211 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.listName)),
+      appBar: AppBar(
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.indigo, Colors.teal],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        title: Text(widget.listName,
+        style: TextStyle(color: Colors.white),),
+      ),
       body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.all(12.0),
             child: Row(
               children: [
+                // Input Field with Shadow and Rounded Design
                 Expanded(
-                  child: TextField(
-                    controller: _textController,
-                    decoration: InputDecoration(
-                      hintText: 'Add a new item...',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12.0),
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey[200],
+                  child: Container(
+                    decoration: BoxDecoration(
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.3), // Shadow color
+                          spreadRadius: 2,
+                          blurRadius: 5,
+                          offset: Offset(0, 3), // Shadow offset
+                        ),
+                      ],
                     ),
-                    onSubmitted: (value) {
-                      _addItem(value);
-                      _textController.clear();
-                    },
+                    child: TextField(
+                      controller: _textController,
+                      decoration: InputDecoration(
+                        hintText: 'Add a new item...',
+                        prefixIcon: Icon(Icons.edit, color: Colors.indigo), // Add an icon
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(20.0),
+                          borderSide: BorderSide.none,
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey[100],
+                      ),
+                      onSubmitted: (value) {
+                        _addItem(value);
+                      },
+                    ),
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.qr_code_scanner),
-                  onPressed: _openScanner,
+                const SizedBox(width: 8), // Add spacing between elements
+                // QR Code Scanner Button with Shadow
+                Container(
+                  decoration: BoxDecoration(
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.3),
+                        spreadRadius: 2,
+                        blurRadius: 5,
+                        offset: Offset(0, 3),
+                      ),
+                    ],
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: Icon(Icons.qr_code_scanner, color: Colors.indigo, size: 28),
+                    tooltip: 'Scan Barcode',
+                    onPressed: _openScanner,
+                  ),
                 ),
-                ElevatedButton(
-                  onPressed: () {
-                    _addItem(_textController.text);
-                    _textController.clear();
-                  },
-                  child: const Text('Add'),
+                const SizedBox(width: 8), // Add spacing
+                // Add Button with Shadow and Rounded Design
+                Container(
+                  decoration: BoxDecoration(
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.3),
+                        spreadRadius: 2,
+                        blurRadius: 5,
+                        offset: Offset(0, 3),
+                      ),
+                    ],
+                    borderRadius: BorderRadius.circular(20.0),
+                  ),
+                  child: ElevatedButton(
+                    onPressed: () {
+                      _addItem(_textController.text);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.indigo,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20.0),
+                      ),
+                    ),
+                    child: Row(
+                      children: const [
+                        Icon(Icons.add, size: 20),
+                        SizedBox(width: 4),
+                        Text('Add', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
+
           Expanded(
             child: StreamBuilder<List<ShoppingItem>>(
               stream: _itemsStream,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+                  return Center(
+                    child: Lottie.asset(
+                      'assets/animations/loading.json',
+                      width: 150,
+                      height: 150,
+                      repeat: true,
+                    ),
+                  );
                 }
 
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(child: Text('Your list is empty.'));
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Lottie.asset(
+                          'assets/animations/add_item.json',
+                          width: 200,
+                          height: 200,
+                          repeat: true,
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Your list is empty.',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
                 }
 
                 final items = snapshot.data!;
-                print('Fetched items from Firestore: ${items.map((e) => e.name).toList()}'); // Debug
-
                 return ListView.builder(
                   itemCount: items.length,
                   itemBuilder: (context, index) {
                     final item = items[index];
-                    return ListTile(
-                      title: GestureDetector(
-                        onTap: () {
-                          _toggleEditMode(item.id);
-                        },
-                        child: _isEditingMap[item.id] == true
-                            ? TextField(
-                          controller: _controllersMap[item.id],
-                          autofocus: true,
-                          onSubmitted: (newName) {
-                            _editItem(item.id, newName);
-                            setState(() {
-                              _isEditingMap[item.id] = false;
-                            });
-                          },
-                          decoration: const InputDecoration(border: OutlineInputBorder()),
-                        )
-                            : Text(item.name),
-                      ),
-                      trailing: Wrap(
-                        spacing: 12,
-                        children: [
-                          IconButton(
-                            icon: Icon(
-                              Icons.check_circle,
-                              color: item.isPurchased ? Colors.green : Colors.grey,
-                            ),
-                            onPressed: () {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
+                      child: Card(
+                        elevation: 4,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12.0),
+                        ),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                          leading: GestureDetector(
+                            onTap: () {
                               _togglePurchase(item.id, item.isPurchased);
                             },
+                            child: CircleAvatar(
+                              backgroundColor: item.isPurchased ? Colors.green : Colors.grey[300],
+                              child: Icon(
+                                item.isPurchased ? Icons.check : null,
+                                color: item.isPurchased ? Colors.white : Colors.grey,
+                              ),
+                            ),
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.redAccent),
+                          title: GestureDetector(
+                            onTap: () {
+                              _toggleEditMode(item.id);
+                            },
+                            child: _isEditingMap[item.id] == true
+                                ? TextField(
+                              controller: _controllersMap[item.id],
+                              autofocus: true,
+                              onSubmitted: (newName) {
+                                _editItem(item.id, newName);
+                                _toggleEditMode(item.id);
+                              },
+                              decoration: InputDecoration(
+                                border: OutlineInputBorder(),
+                                hintText: 'Enter item name',
+                              ),
+                            )
+                                : Text(
+                              item.name,
+                              style: TextStyle(
+                                decoration: item.isPurchased ? TextDecoration.lineThrough : null,
+                              ),
+                            ),
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
                             onPressed: () {
                               _deleteItem(item.id);
                             },
                           ),
-                        ],
+                        ),
                       ),
                     );
                   },
@@ -247,38 +366,3 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     );
   }
 }
-
-
-
-
-
-// double _budget = 0.0;
-// void _showBudgetDialog() {
-//   final budgetController = TextEditingController();
-//   showDialog(
-//     context: context,
-//     builder: (context) => AlertDialog(
-//       title: Text('Set Budget'),
-//       content: TextField(
-//         controller: budgetController,
-//         decoration: InputDecoration(labelText: 'Enter your budget'),
-//         keyboardType: TextInputType.number,
-//       ),
-//       actions: [
-//         TextButton(
-//           onPressed: () => Navigator.of(context).pop(),
-//           child: Text('Cancel'),
-//         ),
-//         TextButton(
-//           onPressed: () {
-//             setState(() {
-//               _budget = double.tryParse(budgetController.text) ?? 0.0;
-//             });
-//             Navigator.of(context).pop();
-//           },
-//           child: Text('Save'),
-//         ),
-//       ],
-//     ),
-//   );
-// }

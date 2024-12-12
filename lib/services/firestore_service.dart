@@ -8,16 +8,14 @@ class FirestoreService {
   final String shoppingListsCollection = 'shoppingLists';
   final String itemsCollection = 'items';
 
-  /// **Create a new shopping list**
   Future<void> createShoppingList(String uid, String listName) async {
     await _firestore.collection(shoppingListsCollection).add({
       'name': listName,
-      'userId': uid, // Associate the list with the user's UID
+      'userId': uid,
       'createdAt': FieldValue.serverTimestamp(),
     });
   }
 
-  // Listen for shopping lists for the current user
   Stream<List<Map<String, String>>> getShoppingLists(String uid) {
     return _firestore
         .collection('shoppingLists')
@@ -36,7 +34,6 @@ class FirestoreService {
 
   Future<bool> isProductInList(String listId, String productName) async {
     try {
-      // Query Firestore to check if the product exists in the current list
       final querySnapshot = await _firestore
           .collection('items') // Replace with your collection name
           .where('listId', isEqualTo: listId) // Filter by list ID
@@ -61,7 +58,6 @@ class FirestoreService {
     });
   }
 
-  /// **Fetch items from a shopping list**
   Stream<List<ShoppingItem>> getItemsForList(String listId) {
     return _firestore
         .collection(itemsCollection)
@@ -82,27 +78,30 @@ class FirestoreService {
     });
   }
 
+  int getTotalItemsForList(List<ShoppingItem> items) {
+    return items.length;
+  }
 
-  /// **Toggle item purchase status**
+  int getCompletedItemsForList(List<ShoppingItem> items) {
+    return items.where((item) => item.isPurchased).length;
+  }
+
   Future<void> toggleItemPurchase(String itemId, bool isPurchased) async {
     await _firestore.collection(itemsCollection).doc(itemId).update({
       'isPurchased': isPurchased,
     });
   }
 
-  /// **Delete an item**
   Future<void> deleteItem(String itemId) async {
     await _firestore.collection(itemsCollection).doc(itemId).delete();
   }
 
-  /// **Edit an item**
   Future<void> editItem(String itemId, String newName) async {
     await _firestore.collection(itemsCollection).doc(itemId).update({
       'name': newName,
     });
   }
 
-  /// **Delete a shopping list (and its items)**
   Future<void> deleteShoppingList(String listId) async {
     final batch = _firestore.batch();
 
@@ -112,17 +111,14 @@ class FirestoreService {
         .where('listId', isEqualTo: listId)
         .get();
 
-    // Queue deletion of all items
     for (var doc in itemsSnapshot.docs) {
       batch.delete(doc.reference);
     }
 
-    // Delete the shopping list
     final shoppingListRef =
     _firestore.collection(shoppingListsCollection).doc(listId);
     batch.delete(shoppingListRef);
 
-    // Commit all batched operations
     await batch.commit();
   }
 }

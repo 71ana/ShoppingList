@@ -11,26 +11,23 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
-  LatLng? _currentPosition; // Coordonatele curente ale utilizatorului
-  List<Marker> _storeMarkers = []; // Marcajele pentru magazine
+  LatLng? _currentPosition;
+  List<Marker> _storeMarkers = [];
 
   @override
   void initState() {
     super.initState();
-    _getCurrentLocation(); // Obține locația utilizatorului
+    _getCurrentLocation();
   }
 
-  // Obține locația curentă a utilizatorului
   Future<void> _getCurrentLocation() async {
     try {
-      // Verifică dacă serviciile de locație sunt activate
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         _showError('Location services are disabled.');
         return;
       }
 
-      // Verifică și cere permisiuni de locație
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
@@ -48,8 +45,6 @@ class _MapScreenState extends State<MapScreen> {
       //sa evit folosirea gps api
       //sa folosim partea de kotlin
 
-
-      // Obține locația curentă
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
@@ -65,10 +60,9 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  // Fetch store locations using Overpass API
   Future<void> _fetchStoreLocations(LatLng position) async {
     final String overpassUrl =
-        'https://overpass-api.de/api/interpreter?data=[out:json];node["shop"](around:20000,${position.latitude},${position.longitude});out;';
+        'https://overpass-api.de/api/interpreter?data=[out:json];node["shop"](around:2000,${position.latitude},${position.longitude});out;';
 
     try {
       final response = await http.get(Uri.parse(overpassUrl));
@@ -126,7 +120,26 @@ class _MapScreenState extends State<MapScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Nearby Stores')),
+      appBar: AppBar(
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.indigo, Colors.teal],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        title: Text(
+          'Nearby Stores',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 22,
+            color: Colors.white,
+          ),
+        ),
+        elevation: 5.0,
+      ),
       body: _currentPosition == null
           ? const Center(child: CircularProgressIndicator())
           : FlutterMap(
@@ -140,7 +153,6 @@ class _MapScreenState extends State<MapScreen> {
             subdomains: ['a', 'b', 'c'],
           ),
           MarkerLayer(markers: [
-            // Marcaj pentru locația utilizatorului
             Marker(
               point: _currentPosition!,
               width: 80,
@@ -148,7 +160,7 @@ class _MapScreenState extends State<MapScreen> {
               builder: (context) =>
               const Icon(Icons.my_location, color: Colors.blue, size: 30),
             ),
-            ..._storeMarkers, // Marcajele pentru magazine
+            ..._storeMarkers,
           ]),
         ],
       ),

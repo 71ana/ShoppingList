@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:shopping_list_app/screens/home_screen.dart';
+
+import 'home_screen.dart';
 
 class AuthScreen extends StatefulWidget {
   @override
