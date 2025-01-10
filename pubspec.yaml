@@ -37,8 +37,9 @@ dependencies:
   geolocator: ^13.0.2
   http: ^0.13.6
   mobile_scanner: ^6.0.2
-  # google_ml_kit: ^0.19.0
-  # image_picker: ^1.1.2
+  speech_to_text: ^7.0.0
+  firebase_storage: ^12.4.0
+  image_picker: ^1.1.2
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -69,6 +70,16 @@ flutter:
   assets:
     - assets/animations/loading_cart.json
     - assets/animations/add_item.json
+    - assets/icons/avatar1.png
+    - assets/icons/avatar2.png
+    - assets/icons/avatar3.png
+    - assets/icons/avatar4.png
+    - assets/icons/avatar5.png
+    - assets/icons/avatar6.png
+    - assets/icons/avatar7.png
+    - assets/icons/avatar8.png
+    - assets/icons/avatar9.png
+    - assets/animations/login.json
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

@@ -17,7 +17,6 @@ class ShoppingListApp extends StatelessWidget {
     return MaterialApp(
       title: 'Shopping List',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(primarySwatch: Colors.teal),
       initialRoute: '/home',
       routes: {
         '/home': (context) => HomeScreen(),

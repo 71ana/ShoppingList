@@ -15,7 +15,7 @@ class ScannerScreen extends StatelessWidget {
         flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Colors.indigo, Colors.teal],
+              colors: [Color(0xFFD8BFD8), Color(0xFFA3D8F4),],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -34,8 +34,8 @@ class ScannerScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.close),
             onPressed: () {
-              controller.dispose(); // Dispose of the camera
-              Navigator.of(context).pop(); // Navigate back
+              controller.dispose();
+              Navigator.of(context).pop();
             },
           ),
         ],
@@ -46,8 +46,8 @@ class ScannerScreen extends StatelessWidget {
           final barcode = barcodeCapture.barcodes.first.rawValue ?? 'No code';
           if (barcode != 'No code') {
             onScan(barcode);
-            controller.stop(); // Stop the scanner to release resources
-            Navigator.of(context).pop(); // Navigate back
+            controller.stop();
+            Navigator.of(context).pop();
           }
         },
       ),

@@ -42,9 +42,6 @@ class _MapScreenState extends State<MapScreen> {
         return;
       }
 
-      //sa evit folosirea gps api
-      //sa folosim partea de kotlin
-
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
@@ -53,16 +50,19 @@ class _MapScreenState extends State<MapScreen> {
         _currentPosition = LatLng(position.latitude, position.longitude);
       });
 
-      // Obține locațiile magazinelor după ce locația utilizatorului a fost obținută
       _fetchStoreLocations(_currentPosition!);
     } catch (e) {
       _showError('Failed to fetch location: $e');
     }
   }
 
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
   Future<void> _fetchStoreLocations(LatLng position) async {
     final String overpassUrl =
-        'https://overpass-api.de/api/interpreter?data=[out:json];node["shop"](around:2000,${position.latitude},${position.longitude});out;';
+        'https://overpass-api.de/api/interpreter?data=[out:json];node["shop"="supermarket"](around:2000,${position.latitude},${position.longitude});out;';
 
     try {
       final response = await http.get(Uri.parse(overpassUrl));
@@ -75,13 +75,14 @@ class _MapScreenState extends State<MapScreen> {
           final lat = element['lat'];
           final lon = element['lon'];
           final name = element['tags']?['name'] ?? 'Unnamed Store';
+          final openingHours = element['tags']?['opening_hours'] ?? 'No data';
 
           return Marker(
             point: LatLng(lat, lon),
             width: 80,
             height: 80,
             builder: (context) => GestureDetector(
-              onTap: () => _showStoreDetails(name),
+              onTap: () => _showStoreDetails(name, openingHours),
               child: const Icon(Icons.location_on, color: Colors.red, size: 30),
             ),
           );
@@ -98,24 +99,82 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
-  }
-
-  void _showStoreDetails(String name) {
+  void _showStoreDetails(String name, String openingHours) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(name),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        backgroundColor: Colors.white,
+        title: Row(
+          children: [
+            Icon(Icons.store, color: Colors.indigo, size: 30),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                name,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.indigo[700],
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Divider(color: Colors.grey[300], thickness: 1),
+            SizedBox(height: 10),
+            Row(
+              children: [
+                Icon(Icons.access_time, color: Colors.teal, size: 24),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Opening Hours:',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 8),
+            Text(
+              openingHours,
+              style: TextStyle(
+                fontSize: 16,
+                fontStyle: FontStyle.italic,
+                color: Colors.black54,
+              ),
+            ),
+            SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: () => Navigator.of(context).pop(),
+              icon: Icon(Icons.close, size: 18),
+              label: Text('Close'),
+              style: ElevatedButton.styleFrom(
+                foregroundColor: Colors.white, backgroundColor: Colors.indigo[400],
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -124,7 +183,7 @@ class _MapScreenState extends State<MapScreen> {
         flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Colors.indigo, Colors.teal],
+              colors: [Color(0xFFD8BFD8), Color(0xFFA3D8F4),],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),

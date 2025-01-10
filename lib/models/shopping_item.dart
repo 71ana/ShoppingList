@@ -1,8 +1,15 @@
 class ShoppingItem {
   final String id;
   final String name;
+  final String quantity;
   final bool isPurchased;
-  final double price;
+  final DateTime createdAt;
 
-  ShoppingItem({ required this.id, required this.name, this.isPurchased = false, this.price = 0.0});
+  ShoppingItem({
+    required this.id,
+    required this.name,
+    required this.quantity,
+    required this.isPurchased,
+    required this.createdAt,
+  });
 }

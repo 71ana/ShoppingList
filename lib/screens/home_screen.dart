@@ -42,15 +42,15 @@ class _HomeScreenState extends State<HomeScreen> {
         elevation: 10.0,
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.checklist_rounded),
+            icon: Icon(Icons.checklist_rounded, size: 25,),
             label: 'My Lists',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.map_outlined),
+            icon: Icon(Icons.map_outlined, size: 25,),
             label: 'Map',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
+            icon: Icon(Icons.person, size: 25,),
             label: 'Profile',
           ),
         ],
@@ -77,7 +77,6 @@ class _HomeContentState extends State<HomeContent> {
     if (user != null) {
       final uid = user.uid;
 
-      // Fetch shopping lists from Firestore
       _firestoreService.getShoppingLists(uid).listen((lists) {
         setState(() {
           shoppingLists = lists;
@@ -92,10 +91,19 @@ class _HomeContentState extends State<HomeContent> {
       final uid = user.uid;
       _firestoreService.createShoppingList(uid, listName);
 
-      // Show success Snackbar
-      _showSuccessSnackbar("List Created", "$listName has been successfully created!");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "$listName has been successfully created!",
+            style: TextStyle(fontSize: 14),
+          ),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
     }
   }
+
 
   void _showSuccessSnackbar(String title, String message) {
     final snackBar = SnackBar(
@@ -130,7 +138,7 @@ class _HomeContentState extends State<HomeContent> {
               Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Colors.indigo.shade500, Colors.teal.shade400],
+                    colors: [Color(0xFFD8BFD8), Color(0xFFA3D8F4),],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -154,6 +162,9 @@ class _HomeContentState extends State<HomeContent> {
                       style: TextStyle(fontSize: 16, color: Colors.black87),
                       decoration: InputDecoration(
                         hintText: 'Enter list name',
+                        hintStyle: TextStyle(
+                          color: Colors.grey,
+                        ),
                         filled: true,
                         fillColor: Colors.white,
                         border: OutlineInputBorder(
@@ -170,22 +181,22 @@ class _HomeContentState extends State<HomeContent> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        ElevatedButton.icon(
-                          onPressed: () => Navigator.of(context).pop(),
-                          icon: const Icon(Icons.close),
-                          label: const Text('Cancel'),
-                          style: ElevatedButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            backgroundColor: Colors.redAccent,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16.0,
-                              vertical: 12.0,
-                            ),
-                          ),
-                        ),
+                        // ElevatedButton.icon(
+                        //   onPressed: () => Navigator.of(context).pop(),
+                        //   icon: const Icon(Icons.close),
+                        //   label: const Text('Cancel'),
+                        //   style: ElevatedButton.styleFrom(
+                        //     foregroundColor: Colors.white,
+                        //     backgroundColor: Colors.redAccent,
+                        //     shape: RoundedRectangleBorder(
+                        //       borderRadius: BorderRadius.circular(12),
+                        //     ),
+                        //     padding: const EdgeInsets.symmetric(
+                        //       horizontal: 16.0,
+                        //       vertical: 12.0,
+                        //     ),
+                        //   ),
+                        // ),
                         ElevatedButton.icon(
                           onPressed: () {
                             if (_dialogController.text.isNotEmpty) {
@@ -221,7 +232,7 @@ class _HomeContentState extends State<HomeContent> {
                   radius: 40,
                   child: Icon(
                     Icons.list_alt_rounded,
-                    color: Colors.teal.shade400,
+                    color: Colors.indigo,
                     size: 40,
                   ),
                 ),
@@ -240,7 +251,7 @@ class _HomeContentState extends State<HomeContent> {
         flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Colors.indigo, Colors.teal],
+              colors: [Color(0xFFD8BFD8), Color(0xFFA3D8F4),],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -305,7 +316,7 @@ class _HomeContentState extends State<HomeContent> {
               final int completedItems =
               _firestoreService.getCompletedItemsForList(items);
               final double progress =
-              totalItems > 0 ? (completedItems / totalItems) : 0.0;
+              totalItems > 0 ? double.parse((completedItems / totalItems).toStringAsFixed(2)) : 0.0;
 
               return Dismissible(
                 key: Key(listId),
@@ -350,8 +361,8 @@ class _HomeContentState extends State<HomeContent> {
                   child: ListTile(
                     leading: CircleAvatar(
                       radius: 30,
-                      backgroundColor: Colors.teal,
-                      child: Icon(Icons.list_alt,
+                      backgroundColor: Colors.indigo[300],
+                      child: Icon(Icons.local_grocery_store_outlined,
                           color: Colors.white, size: 28),
                     ),
                     title: Text(
@@ -367,7 +378,7 @@ class _HomeContentState extends State<HomeContent> {
                       children: [
                         SizedBox(height: 4),
                         Text(
-                          "$completedItems of $totalItems items completed",
+                          "$completedItems/$totalItems checked! 🛒",
                           style: TextStyle(
                               fontSize: 14, color: Colors.grey),
                         ),
@@ -386,15 +397,24 @@ class _HomeContentState extends State<HomeContent> {
                     trailing: Icon(Icons.chevron_right,
                         color: Colors.grey, size: 24),
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ShoppingListScreen(
-                            listId: listId,
-                            listName: listName,
+                      final user = _auth.currentUser;
+                      if (user != null) {
+                        final userId = user.uid;
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ShoppingListScreen(
+                              listId: listId,
+                              listName: listName,
+                              userId: userId, // Pass the userId
+                            ),
                           ),
-                        ),
-                      );
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('No user is signed in!')),
+                        );
+                      }
                     },
                   ),
                 ),

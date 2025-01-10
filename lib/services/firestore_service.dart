@@ -1,4 +1,8 @@
+
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import '../models/shopping_item.dart';
 
 class FirestoreService {
@@ -18,7 +22,7 @@ class FirestoreService {
 
   Stream<List<Map<String, String>>> getShoppingLists(String uid) {
     return _firestore
-        .collection('shoppingLists')
+        .collection(shoppingListsCollection)
         .where('userId', isEqualTo: uid)
         .orderBy('createdAt', descending: true)
         .snapshots()
@@ -35,24 +39,23 @@ class FirestoreService {
   Future<bool> isProductInList(String listId, String productName) async {
     try {
       final querySnapshot = await _firestore
-          .collection('items') // Replace with your collection name
-          .where('listId', isEqualTo: listId) // Filter by list ID
-          .where('name', isEqualTo: productName) // Filter by product name
+          .collection('items')
+          .where('listId', isEqualTo: listId)
+          .where('name', isEqualTo: productName)
           .get();
 
-      // Return true if any documents match, false otherwise
       return querySnapshot.docs.isNotEmpty;
     } catch (e) {
       print('Error checking product in list: $e');
-      return false; // Assume product is not in the list if an error occurs
+      return false;
     }
   }
 
-  /// **Add an item to a specific list**
   Future<void> addItemToList(String listId, ShoppingItem item) async {
     await _firestore.collection(itemsCollection).add({
       'listId': listId,
       'name': item.name,
+      'quantity': item.quantity,
       'isPurchased': item.isPurchased,
       'createdAt': FieldValue.serverTimestamp(),
     });
@@ -72,10 +75,71 @@ class FirestoreService {
         return ShoppingItem(
           id: doc.id,
           name: data['name'] as String,
+          quantity: data['quantity'] as String,
           isPurchased: data['isPurchased'] as bool,
+          createdAt: (data['createdAt'] as Timestamp).toDate(),
         );
       }).toList();
     });
+  }
+
+  Future<List<String>> getItemsForUser(String userId) async {
+    final listsSnapshot = await _firestore
+        .collection(shoppingListsCollection)
+        .where('userId', isEqualTo: userId)
+        .get();
+
+    final listIds = listsSnapshot.docs.map((doc) => doc.id).toList();
+
+    if (listIds.isEmpty) {
+      return [];
+    }
+
+    final itemsSnapshot = await _firestore
+        .collection(itemsCollection)
+        .where('listId', whereIn: listIds)
+        .get();
+
+    final itemCounts = <String, int>{};
+    for (var doc in itemsSnapshot.docs) {
+      final itemName = doc.data()['name'] as String?;
+      if (itemName != null && itemName.isNotEmpty) {
+        itemCounts[itemName] = (itemCounts[itemName] ?? 0) + 1;
+      }
+    }
+
+    final sortedItems = itemCounts.entries
+        .toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    return sortedItems.map((entry) => entry.key).toList();
+  }
+
+  Future<int> getTotalItems(String userId) async {
+      final listsSnapshot = await _firestore
+          .collection('shoppingLists')
+          .where('userId', isEqualTo: userId)
+          .get();
+
+      final listIds = listsSnapshot.docs.map((doc) {
+        return doc.id;
+      }).toList();
+
+      final itemsSnapshot = await _firestore
+          .collection('items')
+          .where('listId', whereIn: listIds)
+          .get();
+
+      return itemsSnapshot.docs.length;
+  }
+
+
+  Future<int> getTotalLists(String userId) async {
+    final listsSnapshot = await _firestore
+        .collection('shoppingLists')
+        .where('userId', isEqualTo: userId)
+        .get();
+    return listsSnapshot.docs.length;
   }
 
   int getTotalItemsForList(List<ShoppingItem> items) {
@@ -96,9 +160,10 @@ class FirestoreService {
     await _firestore.collection(itemsCollection).doc(itemId).delete();
   }
 
-  Future<void> editItem(String itemId, String newName) async {
+  Future<void> editItem(String itemId, String newName, String newQuantity) async {
     await _firestore.collection(itemsCollection).doc(itemId).update({
       'name': newName,
+      'quantity': newQuantity
     });
   }
 

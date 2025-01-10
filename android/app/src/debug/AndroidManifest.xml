@@ -11,6 +11,8 @@
     <uses-feature android:name="android.hardware.camera.autofocus" />
 
 
+
+
     <uses-feature android:name="android.hardware.location.gps" />
 
 </manifest>
